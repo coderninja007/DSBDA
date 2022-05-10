@@ -1,162 +1,118 @@
-/*
-Afnan Attar
-F19112003
-*/
-
-#include<bits/stdc++.h>
+#include <bits/stdc++.h>
 using namespace std;
+// DSU data structure
+// path compression + rank by union
 
-struct node{
-    int parent;
-    int rank;
+class DSU {
+	int* parent;
+	int* rank;
+
+public:
+	DSU(int n)
+	{
+		parent = new int[n];
+		rank = new int[n];
+
+		for (int i = 0; i < n; i++) {
+			parent[i] = -1;
+			rank[i] = 1;
+		}
+	}
+
+	// Find function
+	int find(int i)
+	{
+		if (parent[i] == -1)
+			return i;
+
+		return parent[i] = find(parent[i]);
+	}
+	// union function
+	void unite(int x, int y)
+	{
+		int s1 = find(x);
+		int s2 = find(y);
+
+		if (s1 != s2) {
+			if (rank[s1] < rank[s2]) {
+				parent[s1] = s2;
+				rank[s2] += rank[s1];
+			}
+			else {
+				parent[s2] = s1;
+				rank[s1] += rank[s2];
+			}
+		}
+	}
 };
 
-struct edge{
-    int src;
-    int dest;
-    int wt;
+class Graph {
+	vector<vector<int> > edgelist;
+	int V;
+
+public:
+	Graph(int V) { this->V = V; }
+
+	void addEdge(int x, int y, int w)
+	{
+		edgelist.push_back({ w, x, y });
+	}
+
+	void kruskals_mst()
+	{
+		// 1. Sort all edges
+		sort(edgelist.begin(), edgelist.end());
+
+		// Initialize the DSU
+		DSU s(V);
+		int ans = 0;
+		cout << "Following are the edges in the "
+				"constructed MST"
+			<< endl;
+		for (auto edge : edgelist) {
+			int w = edge[0];
+			int x = edge[1];
+			int y = edge[2];
+
+			// take that edge in MST if it does form a cycle
+			if (s.find(x) != s.find(y)) {
+				s.unite(x, y);
+				ans += w;
+				cout << x << " -- " << y << " == " << w
+					<< endl;
+			}
+		}
+		cout << "Minimum Cost Spanning Tree: " << ans << endl;
+	}
 };
+int main()
+{
+	/* Let us create following weighted graph
+				10
+			0--------1
+			| \	 |
+			6| 5\ |15
+			|	 \ |
+			2--------3
+				4	 */
+	// Graph g(4);
+	// g.addEdge(0, 1, 10);
+	// g.addEdge(1, 3, 15);
+	// g.addEdge(2, 3, 4);
+	// g.addEdge(2, 0, 6);
+	// g.addEdge(0, 3, 5);
 
-vector<node> dsuf;
-vector<edge> mst;
+	int n, m;
+	cin >> n >> m;
 
-bool comparator(edge a, edge b){
-    return a.wt < b.wt;
+	Graph g(n);
+	for (int i = 0; i < m; i++)
+	{
+		 int x, y, w;
+		 cin >> x >> y >> w;
+		 g.addEdge(x, y, w);
+	}
+
+	g.kruskals_mst();
+	return 0;
 }
-
-int find(int v){
-    if (dsuf[v].parent == -1){
-        return v;
-    }
-    return dsuf[v].parent = find(dsuf[v].parent);
-}
-
-void union_op(int fromP, int toP){
-    if(dsuf[fromP].rank > dsuf[toP].rank){
-        dsuf[toP].parent = fromP;
-        dsuf[fromP].rank++;
-    }
-    else if(dsuf[fromP].rank < dsuf[toP].rank){
-        dsuf[fromP].parent = toP;
-        dsuf[toP].rank++;
-    }
-    else{
-        dsuf[fromP].parent = toP;
-        dsuf[toP].rank++;
-    }
-}
-
-void Kruskals(vector<edge>& edge_list, int V, int E){
-    sort(edge_list.begin(), edge_list.end(), comparator);
-    int i = 0, j = 0;
-    while(i < (V - 1) && j < E){
-        int fromP = find(edge_list[j].src);
-        int toP = find(edge_list[j].dest);
-        if(fromP == toP){
-            j++;
-            continue;
-        }
-        union_op(fromP, toP);
-        mst.push_back(edge_list[j]);
-        i++;
-    }
-}
-
-void printMST(vector<edge> MST){
-    for(auto edge : MST){
-        cout << '\n'
-             << "src : " << edge.src << '\n'
-             << "dest : " << edge.dest << '\n'
-             << "wt : " << edge.wt << '\n'
-             << '\n';
-    }
-}
-
-int main(){
-    int E; // number of edges
-    int V; // number of vertices
-    cout << "Enter the number of edges and vertices: ";
-    cin >> E >> V;
-    dsuf.resize(V);
-    for(int i = 0; i < V; i++){
-        dsuf[i].parent = -1;
-        dsuf[i].rank = 0;
-    }
-    vector<edge> edge_list;
-    edge temp;
-    
-    for(int i = 0; i < E; i++){
-        int s,d,w;
-        cin >> s >> d >> w;
-        temp.wt = w;
-        temp.dest = d;
-        temp.src = s;
-        edge_list.push_back(temp);
-    }
-
-    Kruskals(edge_list, V, E);
-    printMST(mst);
-
-    return 0;
-
-
-}
-
-/* OUTPUT:
-Enter the number of edges and vertices: 14 9
-0 1 4
-0 7 8
-7 1 11
-1 2 8
-7 8 7
-7 6 1
-2 3 7
-2 8 2
-2 5 4
-8 6 6
-6 5 2
-5 3 14
-5 4 10
-3 4 9
-
-src : 7
-dest : 6
-wt : 1
-
-
-src : 2
-dest : 8
-wt : 2
-
-
-src : 6
-dest : 5
-wt : 2
-
-
-src : 0
-dest : 1
-wt : 4
-
-
-src : 2
-dest : 5
-wt : 4
-
-
-src : 2
-dest : 3
-wt : 7
-
-
-src : 0
-dest : 7
-wt : 8
-
-
-src : 3
-dest : 4
-wt : 9
-
-*/
-
